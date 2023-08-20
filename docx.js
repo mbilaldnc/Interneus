@@ -48,20 +48,33 @@ const {
 // }
 
 class MyTableCell extends TableCell {
+	/**
+	 *
+	 * @param {docx.ITableCellOptions} options
+	 */
 	constructor(options = {}) {
-		const { text = "", width = 550, bold = false, textDirection = TextDirection.LEFT_TO_RIGHT_TOP_TO_BOTTOM } = options;
+		const {
+			text = "",
+			width,
+			bold = false,
+			textDirection = TextDirection.LEFT_TO_RIGHT_TOP_TO_BOTTOM,
+			horizontalAlign = AlignmentType.CENTER,
+		} = options;
+		/**
+		 * @type {docx.ITableCellOptions} newProps
+		 */
 		const newProps = {
 			...options,
 			children: [
 				new Paragraph({
 					children: [new TextRun({ text: text, bold: bold })],
-					alignment: AlignmentType.CENTER,
+					alignment: horizontalAlign,
 				}),
 			],
 			verticalAlign: VerticalAlign.CENTER,
 			textDirection: textDirection === "bottomToTop" ? TextDirection.BOTTOM_TO_TOP_LEFT_TO_RIGHT : TextDirection.LEFT_TO_RIGHT_TOP_TO_BOTTOM,
 			width: {
-				size: width,
+				size: width || 550,
 				type: WidthType.DXA,
 			},
 		};
@@ -71,12 +84,16 @@ class MyTableCell extends TableCell {
 }
 
 class MyTableRow extends TableRow {
+	/**
+	 *
+	 * @param {docx.ITableRowOptions} options
+	 */
 	constructor(options) {
-		const { height = 300, children = [], ...leftovers } = options || {};
+		const { height, children = [], ...leftovers } = options || {};
 		super({
 			...leftovers,
-			height: {
-				value: height || 300,
+			height: height || {
+				value: 270,
 				rule: HeightRule.EXACT,
 			},
 			children: children,
@@ -85,6 +102,10 @@ class MyTableRow extends TableRow {
 }
 
 class EmptyTableRow extends MyTableRow {
+	/**
+	 *
+	 * @param {Number} columnCount Empty table row with given column count
+	 */
 	constructor(columnCount) {
 		super({
 			children: Array.from(Array(columnCount), () => {
@@ -113,16 +134,182 @@ module.exports = async (fileName) => {
 			return aYear - bYear || aMonth - bMonth || aDay - bDay;
 		});
 		// console.log(revizedDates);
-		const datesHasHgOrPTOrCRPOrSedim = revizedDates.filter((date) => {
+
+		const datesHasTİT = revizedDates.filter((date) => {
+			const keys = Object.keys(dates[date]);
+			const TİT = dates[date][keys.find((key) => key.includes("TİT"))];
+			return TİT && Object.keys(TİT).length;
+		});
+		const TİTTable = new Table({
+			// float: {
+			// 	horizontalAnchor: TableAnchorType.TEXT,
+			// 	verticalAnchor: TableAnchorType.TEXT,
+			// 	overlap: OverlapType.NEVER,
+			// 	// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
+			// 	// relativeVerticalPosition: RelativeVerticalPosition.TOP,
+			// 	topFromText: 2500,
+			// },
+			width: {
+				size: 100,
+				type: WidthType.PERCENTAGE,
+			},
+			rows: [
+				new MyTableRow({ children: [new MyTableCell({ text: "İDRAR", columnSpan: 12 })] }),
+				new MyTableRow({
+					height: {
+						value: 1000,
+						rule: HeightRule.EXACT,
+					},
+					children: [
+						new MyTableCell({ text: "Tarih", bold: true }),
+						new MyTableCell({ text: "Renk" }),
+						new MyTableCell({ text: "pH" }),
+						new MyTableCell({ text: "Dansite" }),
+						new MyTableCell({ text: "Protein" }),
+						new MyTableCell({ text: "Kan" }),
+						new MyTableCell({ text: "Lökosit" }),
+						new MyTableCell({ text: "Şeker" }),
+						new MyTableCell({ text: "Keton" }),
+						new MyTableCell({ text: "Bilirubin" }),
+						new MyTableCell({ text: "Ürobilinojen", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "MİKROSKOBİK MUAYENELER", width: 1600 }),
+					],
+				}),
+			]
+				.concat(
+					datesHasTİT.map((date) => {
+						const dateValues = dates[date];
+						const TİT = dateValues[Object.keys(dateValues).find((key) => key.includes("TİT"))] || {};
+						return new MyTableRow({
+							children: [
+								new MyTableCell({ text: date }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Renk"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("pH"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Dansite"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Protein"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Kan"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Lökosit"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Glukoz"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Keton"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Bilirubin"))] }),
+								new MyTableCell({ text: TİT[Object.keys(TİT).find((key) => key.includes("Urobilinojen"))] }),
+								new MyTableCell({ text: "" }),
+							],
+						});
+					})
+				)
+				.concat(Array.from(Array(2 - datesHasTİT.length > 0 ? 2 - datesHasTİT.length : 0), () => new EmptyTableRow(12))),
+		});
+
+		const datesHasBK = revizedDates.filter((date) => {
+			const BKKeys = [
+				"AKŞ",
+				"Ürea",
+				"BUN",
+				"Kreatinin",
+				"Bilirubin",
+				"AST",
+				"ALT",
+				"GGT",
+				"ALP",
+				"LDH",
+				"Sodyum",
+				"Kalsiyum",
+				"Magnezyum",
+				"Fosfor",
+				"Ürik asit",
+				"Amilaz",
+				"Lipaz",
+				"Protein, Total",
+				"Albumin",
+			];
+			const keys = Object.keys(dates[date]);
+			return keys.some((key) => BKKeys.some((BKKey) => key.toLowerCase().includes(BKKey.toLowerCase())));
+		});
+		const BKTable = new Table({
+			width: {
+				size: 100,
+				type: WidthType.PERCENTAGE,
+			},
+			rows: [
+				new MyTableRow({ children: [new MyTableCell({ text: "BİYOKİMYA", columnSpan: 21 })] }),
+				new MyTableRow({
+					height: {
+						value: 1000,
+						rule: HeightRule.EXACT,
+					},
+					children: [
+						new MyTableCell({ text: "Tarih", bold: true, textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Glukoz", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Üre" }),
+						new MyTableCell({ text: "Kreatinin", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Ca" }),
+						new MyTableCell({ text: "Na" }),
+						new MyTableCell({ text: "K" }),
+						new MyTableCell({ text: "Mg" }),
+						new MyTableCell({ text: "P" }),
+						new MyTableCell({ text: "Ürik Asit", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Tot.Bil.", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Dir.Bil", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "AST" }),
+						new MyTableCell({ text: "ALT" }),
+						new MyTableCell({ text: "ALP" }),
+						new MyTableCell({ text: "GGT" }),
+						new MyTableCell({ text: "LDH" }),
+						new MyTableCell({ text: "Amilaz", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Lipaz", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Tot.Prot.", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Albumin", textDirection: "bottomToTop" }),
+					],
+				}),
+			]
+				.concat(
+					datesHasBK.map((date) => {
+						const dateValues = dates[date];
+						const DüzeltilmişKalsiyum = dateValues[Object.keys(dateValues).find((key) => key.includes("Düzeltilmiş Kalsiyum"))];
+						const Kalsiyum = dateValues[Object.keys(dateValues).find((key) => key === "Kalsiyum")];
+						const DüzeltilmişSodyum = dateValues[Object.keys(dateValues).find((key) => key.includes("Düzeltilmiş Sodyum"))];
+						const Sodyum = dateValues[Object.keys(dateValues).find((key) => key === "Sodyum (Na)")];
+						return new MyTableRow({
+							children: [
+								new MyTableCell({ text: date }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("AKŞ"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Ürea"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Kreatinin"))] }),
+								new MyTableCell({ text: DüzeltilmişKalsiyum || Kalsiyum || "" }),
+								new MyTableCell({ text: DüzeltilmişSodyum || Sodyum || "" }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Potasyum"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Magnezyum"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Fosfor"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Ürik asit"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Bilirubin, Total"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Bilirubin, Direkt"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("AST (SGOT)"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("ALT (SGPT)"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("ALP(Alkalen Fosfataz)"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("GGT"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("LDH"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Amilaz"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Lipaz"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Protein, Total"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Albumin"))] }),
+							],
+						});
+					})
+				)
+				.concat(Array.from(Array(7 - datesHasBK.length > 0 ? 7 - datesHasBK.length : 0), () => new EmptyTableRow(21))),
+		});
+
+		const datesHasHemogram = revizedDates.filter((date) => {
 			const keys = Object.keys(dates[date]);
 			return (
-				keys.some((key) => key.includes("HGB")) ||
+				keys.some((key) => key.includes("Hemogram")) ||
 				keys.some((key) => key.includes("Protrombin Zamanı")) ||
+				keys.some((key) => key.includes("APTT")) ||
 				keys.some((key) => key.includes("CRP")) ||
 				keys.some((key) => key.includes("Sedim"))
 			);
 		});
-
 		const hemogramTable = new Table({
 			float: {
 				horizontalAnchor: TableAnchorType.TEXT,
@@ -132,7 +319,7 @@ module.exports = async (fileName) => {
 			rows: [
 				new TableRow({
 					height: {
-						value: 1300,
+						value: 1100,
 						rule: HeightRule.EXACT,
 					},
 					children: [
@@ -152,27 +339,31 @@ module.exports = async (fileName) => {
 				}),
 			]
 				.concat(
-					datesHasHgOrPTOrCRPOrSedim.map((date) => {
+					datesHasHemogram.map((date) => {
 						const dateValues = dates[date];
+						const hemogram = dateValues[Object.keys(dateValues).find((key) => key.includes("Hemogram"))] || {};
+						const koagulometre = dateValues[Object.keys(dateValues).find((key) => key.includes("Protrombin Zamanı"))] || {};
 						return new MyTableRow({
 							children: [
 								new MyTableCell({ text: date }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("HGB"))] || "" }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("HCT"))] || "" }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("MCV"))] || "" }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("WBC"))] || "" }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("NEU"))] || "" }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("PLT"))] || "" }),
+								new MyTableCell({ text: hemogram[Object.keys(hemogram).find((key) => key.includes("HGB"))] || "" }),
+								new MyTableCell({ text: hemogram[Object.keys(hemogram).find((key) => key.includes("HCT"))] || "" }),
+								new MyTableCell({ text: hemogram[Object.keys(hemogram).find((key) => key.includes("MCV"))] || "" }),
+								new MyTableCell({ text: hemogram[Object.keys(hemogram).find((key) => key.includes("WBC"))] || "" }),
+								new MyTableCell({ text: hemogram[Object.keys(hemogram).find((key) => key.includes("NEU"))] || "" }),
+								new MyTableCell({ text: hemogram[Object.keys(hemogram).find((key) => key.includes("PLT"))] || "" }),
 								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("CRP"))] || "" }),
 								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Sedim"))] || "" }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Protrombin Zamanı"))] || "" }),
+								new MyTableCell({
+									text: koagulometre[Object.keys(koagulometre).find((key) => key.includes("Protrombin Zamanı"))] || "",
+								}),
 								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("APTT"))] || "" }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("INR"))] || "" }),
+								new MyTableCell({ text: koagulometre[Object.keys(koagulometre).find((key) => key.includes("INR"))] || "" }),
 							],
 						});
 					})
 				)
-				.concat(Array.from(Array(7 - datesHasHgOrPTOrCRPOrSedim.length), () => new EmptyTableRow(12))),
+				.concat(Array.from(Array(7 - datesHasHemogram.length > 0 ? 7 - datesHasHemogram.length : 0), () => new EmptyTableRow(12))),
 		});
 
 		let allDateValuesCombined = {};
@@ -195,104 +386,122 @@ module.exports = async (fileName) => {
 			},
 			rows: [
 				new MyTableRow({
-					children: [new MyTableCell({ text: "Tarih", width: 1100 }), new MyTableCell({ width: 1000 })],
+					children: [new MyTableCell({ text: "Tarih", width: 1100, bold: true }), new MyTableCell({ width: 1150 })],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "AntiHBs", width: 1100 }),
+						new MyTableCell({ text: "AntiHBs", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBs"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HBcIgG", width: 1100 }),
+						new MyTableCell({ text: "HBcIgG", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBc IGG"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HBcIgM", width: 1100 }),
+						new MyTableCell({ text: "HBcIgM", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBc IgM"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HBeAg", width: 1100 }),
+						new MyTableCell({ text: "HBeAg", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBeAg"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "AntiHBe", width: 1100 }),
+						new MyTableCell({ text: "AntiHBe", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBe"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "AntiHCV", width: 1100 }),
+						new MyTableCell({ text: "AntiHCV", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HCV"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "AntiHIV", width: 1100 }),
+						new MyTableCell({ text: "AntiHIV", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HIV"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HBV-DNA", width: 1100 }),
+						new MyTableCell({ text: "HBV-DNA", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBV-DNA"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HCV-RNA", width: 1100 }),
+						new MyTableCell({ text: "HCV-RNA", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HCV-RNA"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HBV Viral Yük", width: 1100 }),
+						new MyTableCell({ text: "HBV Viral Yük", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBV Viral Yük"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HCV Viral Yük", width: 1100 }),
+						new MyTableCell({ text: "HCV Viral Yük", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 1000,
+							width: 1150,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HCV Viral Yük"))] || "",
+						}),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "AntiHAV IgG", width: 1100, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							width: 1150,
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HAV IgG"))] || "",
+						}),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "AntiHAV IgM", width: 1100, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							width: 1150,
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HAV IgM"))] || "",
 						}),
 					],
 				}),
@@ -310,11 +519,11 @@ module.exports = async (fileName) => {
 			},
 			rows: [
 				new MyTableRow({
-					children: [new MyTableCell({ text: "Tarih" }), new MyTableCell({ width: 800 })],
+					children: [new MyTableCell({ text: "Tarih", bold: true }), new MyTableCell({ width: 800 })],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "AFP" }),
+						new MyTableCell({ text: "AFP", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Alfa-feto"))] || "",
@@ -323,7 +532,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "CEA" }),
+						new MyTableCell({ text: "CEA", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("CEA"))] || "",
@@ -332,7 +541,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Ca19-9" }),
+						new MyTableCell({ text: "Ca19-9", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca 19-9"))] || "",
@@ -341,7 +550,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Ca15-3" }),
+						new MyTableCell({ text: "Ca15-3", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca 15-3"))] || "",
@@ -350,7 +559,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Ca125" }),
+						new MyTableCell({ text: "Ca125", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca125"))] || "",
@@ -359,7 +568,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HDL" }),
+						new MyTableCell({ text: "HDL", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HDL"))] || "",
@@ -368,7 +577,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "VLDL" }),
+						new MyTableCell({ text: "VLDL", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("VLDL"))] || "",
@@ -377,7 +586,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "LDL" }),
+						new MyTableCell({ text: "LDL", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("(LDL"))] || "",
@@ -386,7 +595,7 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Tot.Kolest." }),
+						new MyTableCell({ text: "Tot.Kolest.", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Kolesterol (Total)"))] || "",
@@ -395,119 +604,369 @@ module.exports = async (fileName) => {
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Trigliserit" }),
+						new MyTableCell({ text: "Trigliserit", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Trigliserid"))] || "",
 						}),
 					],
 				}),
+				new MyTableRow({
+					children: [new MyTableCell(), new MyTableCell()],
+				}),
+				new MyTableRow({
+					children: [new MyTableCell(), new MyTableCell()],
+				}),
 			],
 		});
 
-		const TİTTable = new Table({
-			// TODO
+		// TODO prokalsitonin ekle
+		const HormonTable = new Table({
 			float: {
 				horizontalAnchor: TableAnchorType.TEXT,
 				verticalAnchor: TableAnchorType.TEXT,
 				overlap: OverlapType.NEVER,
 				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
 				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
-				leftFromText: 100,
+				leftFromText: 0,
 			},
 			rows: [
 				new MyTableRow({
-					children: [new MyTableCell({ text: "Tarih" }), new MyTableCell({ width: 800 })],
+					children: [
+						new MyTableCell({ text: "Tarih", bold: true, width: 1000 }),
+						new MyTableCell({ text: revizedDates.find((date) => dates[date].TSH), width: 1000 }),
+					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "AFP" }),
+						new MyTableCell({ text: "TSH", width: 1000, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("TSH"))] || "" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "sT3", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Alfa-feto"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Serbest T3"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "CEA" }),
+						new MyTableCell({ text: "sT4", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("CEA"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Serbest T4"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Ca19-9" }),
+						new MyTableCell({ text: "PTH", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca 19-9"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Parathormon"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Ca15-3" }),
+						new MyTableCell({ text: "Demir", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca 15-3"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Demir (Fe)"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Ca125" }),
+						new MyTableCell({ text: "TDBK", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca125"))] || "",
+							text:
+								allDateValuesCombined[
+									Object.keys(allDateValuesCombined).find((key) => key.includes("Demir Bağlama Kapasitesi (Total)"))
+								] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "HDL" }),
+						new MyTableCell({ text: "Transferrin", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HDL"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Transferrin"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "VLDL" }),
+						new MyTableCell({ text: "Ferritin", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("VLDL"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ferritin"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "LDL" }),
+						new MyTableCell({ text: "Folik Asit", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("(LDL"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Folik Asit"))] || "",
 						}),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Tot.Kolest." }),
+						new MyTableCell({ text: "B-12 Vit", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Kolesterol (Total)"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Vitamin B12"))] || "",
 						}),
+					],
+				}),
+			],
+		});
+
+		const AssitTable = new Table({
+			float: {
+				horizontalAnchor: TableAnchorType.MARGIN,
+				verticalAnchor: TableAnchorType.TEXT,
+				overlap: OverlapType.NEVER,
+				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
+				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
+				leftFromText: 200,
+				topFromText: 0,
+			},
+			rows: [
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Assit Analizi", bold: true, width: 1000 }), new MyTableCell({ width: 600 })],
+				}),
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Tot.Protein", width: 1000, horizontalAlign: AlignmentType.LEFT }), new MyTableCell()],
+				}),
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Albumin", width: 1000, horizontalAlign: AlignmentType.LEFT }), new MyTableCell()],
+				}),
+				new MyTableRow({
+					children: [new MyTableCell({ text: "SAAG", width: 1000, horizontalAlign: AlignmentType.LEFT }), new MyTableCell()],
+				}),
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Lökosit", width: 1000, horizontalAlign: AlignmentType.LEFT }), new MyTableCell()],
+				}),
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Eritrosit", width: 1000, horizontalAlign: AlignmentType.LEFT }), new MyTableCell()],
+				}),
+			],
+		});
+
+		const SeruloplazminTable = new Table({
+			float: {
+				horizontalAnchor: TableAnchorType.TEXT,
+				verticalAnchor: TableAnchorType.TEXT,
+				overlap: OverlapType.NEVER,
+				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
+				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
+				absoluteVerticalPosition: "3cm",
+				leftFromText: 200,
+			},
+			rows: [
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Tarih", bold: true, width: 900 }), new MyTableCell({ width: 500 })],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Seruloplazmin", width: 900, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ width: 500 }),
 					],
 				}),
 				new MyTableRow({
 					children: [
-						new MyTableCell({ text: "Trigliserit" }),
+						new MyTableCell({ text: "Amonyak", width: 900, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ width: 500 }),
+					],
+				}),
+			],
+		});
+
+		const OtoimmünMarkerTable = new Table({
+			float: {
+				horizontalAnchor: TableAnchorType.TEXT,
+				verticalAnchor: TableAnchorType.TEXT,
+				overlap: OverlapType.NEVER,
+				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
+				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
+				absoluteVerticalPosition: "0cm",
+				leftFromText: "1.5cm",
+				topFromText: "1.5cm",
+			},
+			rows: [
+				new MyTableRow({
+					height: {
+						value: 1000,
+						rule: HeightRule.EXACT,
+					},
+					children: [
+						new MyTableCell({ text: "Otoimmün Marker", bold: true, width: 1000 }),
+						new MyTableCell({ text: "ANA" }),
+						new MyTableCell({ text: "ANCA" }),
+						new MyTableCell({ text: "AMA" }),
+						new MyTableCell({ text: "ASMA" }),
+						new MyTableCell({ text: "AntiLKM", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "IgA" }),
+						new MyTableCell({ text: "IgM" }),
+						new MyTableCell({ text: "IgG" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
 						new MyTableCell({
-							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Trigliserid"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("IgA (İmmün kompleks)"))] || "",
+						}),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("IgM (İmmün kompleks)"))] || "",
+						}),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("IgG (İmmün kompleks)"))] || "",
 						}),
 					],
+				}),
+			],
+		});
+
+		const ChildPughSkorlama = new Table({
+			float: {
+				horizontalAnchor: TableAnchorType.TEXT,
+				verticalAnchor: TableAnchorType.TEXT,
+				overlap: OverlapType.NEVER,
+				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
+				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
+				leftFromText: 0,
+				absoluteVerticalPosition: "6cm",
+			},
+			rows: [
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Child-Pugh Skorlama", bold: true, columnSpan: 5 })],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Measure", bold: true, width: 1800 }),
+						new MyTableCell({ text: "1 point", bold: true }),
+						new MyTableCell({ text: "2 point", bold: true, width: 800 }),
+						new MyTableCell({ text: "3 point", bold: true, width: 800 }),
+						new MyTableCell({ text: "Skor", bold: true }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Total bilirubin, µmol/l (mg/dl)", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "<2", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "2-3", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: ">3", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Serum albumin, g/l", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: ">3,5", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "2,8-3,5", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "<2,8", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "INR", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "<1,7", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "1,7-2,3", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: ">2,3", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Ascites", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "Yok", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "Hafif", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "Yaygın", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Hepatic encephalopathy", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "Yok", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "Grade I-II", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "Grade III-IV", horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Toplam", bold: true, columnSpan: 4, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({ text: "" }),
+					],
+				}),
+			],
+		});
+
+		const RansonKriterleriTable = new Table({
+			float: {
+				horizontalAnchor: TableAnchorType.TEXT,
+				verticalAnchor: TableAnchorType.TEXT,
+				overlap: OverlapType.NEVER,
+				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
+				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
+				leftFromText: "0.5cm",
+				absoluteVerticalPosition: "6cm",
+			},
+			width: {
+				size: "10cm",
+				type: WidthType.AUTO,
+			},
+			columnWidths: [200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200],
+			layout: TableLayoutType.FIXED,
+			rows: [
+				new MyTableRow({
+					children: [new MyTableCell({ text: "Ranson Kriterleri", bold: true, columnSpan: 12 })],
+				}),
+				new MyTableRow({
+					height: {
+						value: 1200,
+						rule: HeightRule.EXACT,
+					},
+					children: [
+						new MyTableCell({ rowSpan: 2 }),
+						new MyTableCell({ text: "Yaş>55", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "WBC >16.000", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Glukoz >200", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "LDH >350", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "AST >250", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Hct düşüşü >%10", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "BUN artışı >5 mg", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Baz Açığı >4 mEq", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "PO2 <60", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Kalsiyum <8 mEq", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "Sıvı Sekest. >6000ml", textDirection: "bottomToTop" }),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+						new MyTableCell(),
+					],
+				}),
+				new MyTableRow({
+					children: [new MyTableCell({ text: "SKOR", bold: true }), new MyTableCell({ columnSpan: 5 }), new MyTableCell({ columnSpan: 6 })],
 				}),
 			],
 		});
@@ -531,21 +990,53 @@ module.exports = async (fileName) => {
 				new Paragraph({
 					children: [new TextRun({ text: "T.C. KOCAELİ ÜNİVERSİTESİ ARAŞTIRMA VE UYGULAMA HASTANESİ", bold: true })],
 					alignment: AlignmentType.CENTER,
-					style: "11pt",
+					style: "header",
 				}),
 				new Paragraph({
 					children: [new TextRun({ text: "GASTROENTEROLOJİ YATAN HASTA LABORATUVAR BULGULARI", bold: true })],
 					alignment: AlignmentType.CENTER,
+					style: "header",
+				}),
+				new Paragraph({
+					children: [],
+				}),
+				new Paragraph({
+					children: [new TextRun({ text: "Hastanın Adı Soyadı: ", bold: true }), new TextRun({ text: name })],
+					alignment: AlignmentType.LEFT,
 					style: "11pt",
 				}),
 				new Paragraph({
-					children: [new TextRun({ text: "Hastanın Adı Soyadı:", bold: true }), new TextRun({ text: name })],
-					alignment: AlignmentType.LEFT,
-					style: "11pt",
+					children: [],
+				}),
+				TİTTable,
+				new Paragraph({
+					children: [],
+				}),
+				BKTable,
+				new Paragraph({
+					children: [],
 				}),
 				hemogramTable,
 				elisaTable,
 				TmAndLipidTable,
+				new Paragraph({
+					children: [],
+				}),
+				HormonTable,
+				AssitTable,
+				SeruloplazminTable,
+				OtoimmünMarkerTable,
+				ChildPughSkorlama,
+				RansonKriterleriTable,
+				new Paragraph({
+					children: [],
+				}),
+				new Paragraph({
+					children: [],
+				}),
+				new Paragraph({
+					children: [],
+				}),
 			],
 		});
 	}
@@ -568,6 +1059,25 @@ module.exports = async (fileName) => {
 					next: "Normal",
 					run: {
 						size: "11pt",
+					},
+					paragraph: {
+						spacing: {
+							line: 260,
+						},
+					},
+				},
+				{
+					id: "header",
+					name: "header",
+					basedOn: "Normal",
+					next: "Normal",
+					run: {
+						size: "11pt",
+					},
+					paragraph: {
+						spacing: {
+							line: 300,
+						},
 					},
 				},
 			],

@@ -1,16 +1,15 @@
 const fs = require("fs");
 const puppeteer = require("puppeteer");
 const prompt = require("prompt");
-// const readline = require("readline").createInterface({
-// 	input: process.stdin,
-// 	output: process.stdout,
-// });
-// const util = require("util");
-// const question = util.promisify(readline.question).bind(readline);
+
+const height = 100000;
+// const height = 1080;
+const headless = "new";
+// const headless = false;
 
 const excludedValueNames = ["MDRD", "eGFR", "FIB", "SERUM INDEX", "LIPEMIA", "ICTERUS", "HEMOLYSİS"];
 let dateRegex = /^(\d{2}\.\d{2}\.\d{2})/;
-let valueRegex = /^(((-|<|>)?\d+,?\d*)?\s?((NEGATİF\(-\))|(POZİTİF\(\+\)))?)/;
+let valueRegex = /^(((-|<|>)?\s?\d+,?\d*)?\s?((NEGATİF\(-\))|(POZİTİF\(\+\)))?)/;
 
 function sleep(ms) {
 	return new Promise((resolve) => {
@@ -37,8 +36,7 @@ async function findAsync(array, predicate) {
 async function authenticateAndListPatients(browser, username, password) {
 	const page = await browser.newPage();
 	await page.setViewport({
-		height: 100000,
-		// height: 1080,
+		height,
 		width: 800,
 	});
 
@@ -70,10 +68,27 @@ async function authenticateAndListPatients(browser, username, password) {
 		.fill(password);
 	await page.locator("#submitbutton >>>> #button").click();
 
+	await Promise.race([
+		// click Hasta İşlemleri
+		page
+			.locator(
+				"body > vaadin-app-layout > div > div > div > div.view-frame__content > div > div > div > div.mobilmenu__group > div > div > span"
+			)
+			.click(),
+		(async () => {
+			await page.waitForSelector(
+				"body > vaadin-vertical-layout > div > div > vaadin-vertical-layout > vaadin-horizontal-layout > label ::-p-text(Yanlış kullanıcı adı ya da parola)"
+			);
+			throw new Error("Wrong username or password");
+		})(),
+	]);
+
+	console.log("Logged in!");
+	console.log("Listing patients...");
 	// click Hasta İşlemleri
-	await page
-		.locator("body > vaadin-app-layout > div > div > div > div.view-frame__content > div > div > div > div.mobilmenu__group > div > div > span")
-		.click();
+	// await page
+	// 	.locator("body > vaadin-app-layout > div > div > div > div.view-frame__content > div > div > div > div.mobilmenu__group > div > div > span")
+	// 	.click();
 
 	// click Hasta Sorgula
 	await page
@@ -111,11 +126,10 @@ async function authenticateAndListPatients(browser, username, password) {
  */
 async function getPatientData(browser, patienName) {
 	let myBrowser = browser;
-	if (!myBrowser) myBrowser = await puppeteer.launch({ headless: "new" });
+	if (!myBrowser) myBrowser = await puppeteer.launch({ headless });
 	const page = await myBrowser.newPage();
 	await page.setViewport({
-		height: 100000,
-		// height: 1080,
+		height,
 		width: 800,
 	});
 	// Navigate the page to a URL
@@ -187,43 +201,67 @@ async function getPatientData(browser, patienName) {
 		const text = await page.evaluate((el) => el.innerText, tableItems[i]);
 		// console.log(text);
 		if (excludedValueNames.some((excludedValue) => text.includes(excludedValue))) continue;
-		let rows = text.split("\n");
-		if (rows.length === 1) continue;
-		if (rows[0].includes("Teknik Onaylı")) {
-			rows = rows.slice(1);
+		let columns = text.split("\n");
+		if (columns.length === 1) continue;
+		if (columns[0].toLowerCase().includes("Teknik Onaylı".toLowerCase())) {
+			columns = columns.slice(1);
+		}
+		if (columns[0].toLowerCase().includes("Örnek Alınmış".toLowerCase())) {
+			columns = columns.slice(1);
+		}
+		if (columns[0].toLowerCase().includes("Kabul Edilmiş".toLowerCase())) {
+			columns = columns.slice(1);
 		}
 		if (
-			rows[0].includes("Hemogram") ||
-			rows[0].includes("Protrombin Zamanı") ||
-			rows[0].includes("Kan gazı") ||
-			rows[0].includes("Tam İdrar") ||
-			rows[0].includes("Gastrointestinal Panel")
+			columns[0].includes("Hemogram") ||
+			columns[0].includes("Protrombin Zamanı") ||
+			columns[0].includes("Kan gazı") ||
+			columns[0].includes("Tam İdrar") ||
+			columns[0].includes("Gastrointestinal Panel") ||
+			columns[0].includes("Monospesifik Direkt Coombs")
 		) {
 			// console.log(rows[0], "results:");
-			let dateResult = dateRegex.exec(rows[1]);
+			let dateResult = dateRegex.exec(columns[1]);
 			if (!dateResult) continue; // if date is not found, continue
+			let rowElements = await tableItems[i].$$("vaadin-vertical-layout > vaadin-vertical-layout > div");
+			if (!rowElements.length) continue;
 			if (!(dateResult[0] in patientLabResults)) patientLabResults[dateResult[0]] = {};
 			let dateObj = patientLabResults[dateResult[0]];
-			let rowElements = await tableItems[i].$$("vaadin-vertical-layout > vaadin-vertical-layout > div");
+			if (!(columns[0].trim() in dateObj)) dateObj[columns[0].trim()] = {};
+			const labGroup = dateObj[columns[0].trim()];
 			for (const rowIndex in rowElements) {
 				const rowElement = rowElements[rowIndex];
 				const rowElementText = await page.evaluate((el) => el.innerText, rowElement);
 				const splitedRowText = rowElementText.split("\n");
 				// console.log(rowIndex + "-" + rowElementText);
-				let valueResult = valueRegex.exec(splitedRowText[1]);
-				if (!valueResult) continue;
-				if (!dateObj[splitedRowText[0]]) dateObj[splitedRowText[0]] = valueResult[0].trim();
+				if (columns[0].includes("Tam İdrar")) {
+					// avoid regex. Cause result may vary a lot. Just copy the result
+					if (!labGroup[splitedRowText[0]]) labGroup[splitedRowText[0]] = splitedRowText[1].trim();
+				} else {
+					let valueResult = valueRegex.exec(splitedRowText[1]);
+					if (!valueResult) continue;
+					if (!labGroup[splitedRowText[0]]) labGroup[splitedRowText[0]] = valueResult[0].trim();
+				}
 			}
 			// console.log(dateObj);
 		} else {
 			// Biyokimya veya elisa
-			let dateResult = dateRegex.exec(rows.at(-1));
+			let dateResult = dateRegex.exec(columns.at(-1));
 			if (!dateResult) continue; // if date is not found, continue
+			if (columns.length < 3) continue;
 			if (!(dateResult[0] in patientLabResults)) patientLabResults[dateResult[0]] = {};
 			let dateObj = patientLabResults[dateResult[0]];
-			let valueResult = valueRegex.exec(rows[1]);
-			if (!valueResult) continue;
-			if (!dateObj[rows[0]]) dateObj[rows[0]] = valueResult[0].trim();
+			if (
+				columns[0].toLowerCase().includes("Periferik Yayma".toLowerCase()) ||
+				columns[0].toLowerCase().includes("Hücre Sayımı".toLowerCase())
+			) {
+				// periferik yayma results may vary. So just copy the result
+				if (!dateObj[columns[0]]) dateObj[columns[0]] = columns[1].trim();
+			} else {
+				let valueResult = valueRegex.exec(columns[1]);
+				if (!valueResult) continue;
+				if (!dateObj[columns[0]]) dateObj[columns[0]] = valueResult[0].trim();
+			}
 		}
 		// console.log(i + "-" + text.split("\n").at(-1));
 	}
@@ -234,17 +272,29 @@ async function getPatientData(browser, patienName) {
 module.exports = async (fileName) => {
 	const startTime = new Date();
 	const fileNameWithExtension = fileName + ".json";
-	// Get user account
-	// const username = await question("Kullanıcı adınızı girin: ");
-	// const password = await question("Şifrenizi girin: ");
-	const { username, password } = await prompt.get([
-		{ name: "username", description: "Kullanıcı adı", required: true },
-		{ name: "password", description: "Şifre", required: true, hidden: true },
-	]);
 	// Launch the browser and open a new blank page
-	const browser = await puppeteer.launch({ headless: "new" });
-	console.log("Listing patients...");
-	const [initialPage, patientNames] = await authenticateAndListPatients(browser, username, password);
+	let browser;
+
+	// Get user account
+	let loggedIn = false;
+	let initialPage;
+	let patientNames;
+	while (!loggedIn) {
+		try {
+			const { username, password } = await prompt.get([
+				{ name: "username", description: "Kullanıcı adı", required: true },
+				{ name: "password", description: "Şifre", required: true, hidden: true },
+			]);
+			console.log("Logging in...");
+			browser = await puppeteer.launch({ headless });
+			[initialPage, patientNames] = await authenticateAndListPatients(browser, username, password);
+			loggedIn = true;
+		} catch (e) {
+			console.log("Login failed. Please try again.");
+			browser.close();
+			continue;
+		}
+	}
 	initialPage.close();
 
 	const allData = {};
