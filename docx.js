@@ -115,9 +115,9 @@ class EmptyTableRow extends MyTableRow {
 	}
 }
 
-module.exports = async (fileName) => {
+module.exports = async (absoluteFileName) => {
 	// const { fileName } = await prompt.get([{ name: "fileName", description: "Uzantısını yazmadan dosya adını giriniz" }]);
-	const data = JSON.parse(await fs.promises.readFile(`./${fileName}.json`, "utf8"));
+	const data = JSON.parse(await fs.promises.readFile(`${absoluteFileName}.json`, "utf8"));
 	console.log("Generating docx...");
 	const sections = [];
 	for (const [name, dates] of Object.entries(data)) {
@@ -1087,7 +1087,7 @@ module.exports = async (fileName) => {
 
 	// Used to export the file into a .docx file
 	const buffer = await Packer.toBuffer(doc);
-	await fs.promises.writeFile(`${fileName}.docx`, buffer);
+	await fs.promises.writeFile(`${absoluteFileName}.docx`, buffer);
 	console.log("Docx generated!");
 
 	// Done! A file called 'My Document.docx' will be in your file system.

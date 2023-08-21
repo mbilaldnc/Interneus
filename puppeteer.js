@@ -1,6 +1,7 @@
 const fs = require("fs");
 const puppeteer = require("puppeteer");
 const prompt = require("prompt");
+const path = require("path");
 
 const height = 100000;
 // const height = 1080;
@@ -269,9 +270,8 @@ async function getPatientData(browser, patienName) {
 	return [patientLabResults, page];
 }
 
-module.exports = async (fileName) => {
+module.exports = async (absoluteFileName) => {
 	const startTime = new Date();
-	const fileNameWithExtension = fileName + ".json";
 	// Launch the browser and open a new blank page
 	let browser;
 
@@ -282,8 +282,13 @@ module.exports = async (fileName) => {
 	while (!loggedIn) {
 		try {
 			const { username, password } = await prompt.get([
-				{ name: "username", description: "Kullanıcı adı", required: true },
-				{ name: "password", description: "Şifre", required: true, hidden: true },
+				{ name: "username", description: "Nucleus kullanıcı adınızı giriniz", required: true },
+				{
+					name: "password",
+					description: "Nucleus şifrenizi giriniz (yazdıklarınız size görünmez ama algılanır)",
+					required: true,
+					hidden: true,
+				},
 			]);
 			console.log("Logging in...");
 			browser = await puppeteer.launch({ headless });
@@ -331,7 +336,8 @@ module.exports = async (fileName) => {
 		const patientProcessTime = (new Date() - patientStartTime) / 1000;
 		console.log("Patient processed in " + patientProcessTime + " seconds!");
 		patientTimes.push(patientProcessTime);
-		await fs.promises.writeFile(fileNameWithExtension, JSON.stringify(allData), "utf8");
+		if (!fs.existsSync(`${absoluteFileName}.json`)) console.log(`Creating ${absoluteFileName}.json with first patients data...`);
+		await fs.promises.writeFile(`${absoluteFileName}.json`, JSON.stringify(allData), "utf8");
 		console.log(patientName, "is successfuly scraped.");
 	}
 	console.log("Executed in " + (new Date() - startTime) / 1000 + " seconds!");
