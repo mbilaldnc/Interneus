@@ -177,7 +177,7 @@ module.exports = async (absoluteFileName) => {
 				}),
 			]
 				.concat(
-					datesHasTİT.map((date) => {
+					datesHasTİT.slice(0, 3).map((date) => {
 						const dateValues = dates[date];
 						const TİT = dateValues[Object.keys(dateValues).find((key) => key.includes("TİT"))] || {};
 						return new MyTableRow({
@@ -198,17 +198,17 @@ module.exports = async (absoluteFileName) => {
 						});
 					})
 				)
-				.concat(Array.from(Array(2 - datesHasTİT.length > 0 ? 2 - datesHasTİT.length : 0), () => new EmptyTableRow(12))),
+				.concat(Array.from(Array(3 - datesHasTİT.length > 0 ? 3 - datesHasTİT.length : 0), () => new EmptyTableRow(12))),
 		});
 
 		const datesHasBK = revizedDates.filter((date) => {
 			const BKKeys = [
-				"AKŞ",
+				"Açlık Kan Şekeri (AKŞ)",
 				"Ürea",
 				"BUN",
 				"Kreatinin",
 				"Bilirubin",
-				"AST",
+				"AST", // "Hastabaşı" overlaps with AST
 				"ALT",
 				"GGT",
 				"ALP",
@@ -224,7 +224,7 @@ module.exports = async (absoluteFileName) => {
 				"Albumin",
 			];
 			const keys = Object.keys(dates[date]);
-			return keys.some((key) => BKKeys.some((BKKey) => key.toLowerCase().includes(BKKey.toLowerCase())));
+			return keys.some((key) => BKKeys.some((BKKey) => key.includes(BKKey)));
 		});
 		const BKTable = new Table({
 			width: {
@@ -273,7 +273,7 @@ module.exports = async (absoluteFileName) => {
 						return new MyTableRow({
 							children: [
 								new MyTableCell({ text: date }),
-								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("AKŞ"))] }),
+								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Açlık Kan Şekeri (AKŞ)"))] }),
 								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Ürea"))] }),
 								new MyTableCell({ text: dateValues[Object.keys(dateValues).find((key) => key.includes("Kreatinin"))] }),
 								new MyTableCell({ text: DüzeltilmişKalsiyum || Kalsiyum || "" }),
@@ -371,6 +371,7 @@ module.exports = async (absoluteFileName) => {
 			Object.assign(allDateValuesCombined, dates[date]);
 		}
 
+		const eliseRowHeight = 240;
 		const elisaTable = new Table({
 			// width: {
 			// 	value: 35,
@@ -387,6 +388,23 @@ module.exports = async (absoluteFileName) => {
 			rows: [
 				new MyTableRow({
 					children: [new MyTableCell({ text: "Tarih", width: 1100, bold: true }), new MyTableCell({ width: 1150 })],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "HbsAg", width: 1100, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							width: 1150,
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBs Ag"))] || "",
+						}),
+					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -396,6 +414,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBs"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -405,6 +427,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBc IGG"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -414,15 +440,23 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBc IgM"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
 						new MyTableCell({ text: "HBeAg", width: 1100, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 1150,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBeAg"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBe Ag"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -432,6 +466,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HBe"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -441,6 +479,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HCV"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -450,6 +492,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HIV"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -459,6 +505,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBV-DNA"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -468,6 +518,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HCV-RNA"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -477,6 +531,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HBV Viral Yük"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -486,6 +544,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("HCV Viral Yük"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -495,6 +557,10 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HAV IgG"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 				new MyTableRow({
 					children: [
@@ -504,6 +570,62 @@ module.exports = async (absoluteFileName) => {
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Anti HAV IgM"))] || "",
 						}),
 					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Rubella lgG", width: 1100, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							width: 1150,
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Rubella lgG"))] || "",
+						}),
+					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Rubella lgM", width: 1100, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							width: 1150,
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Rubella lgM"))] || "",
+						}),
+					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "CMV IgG", width: 1100, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							width: 1150,
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("CMV IgG"))] || "",
+						}),
+					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "CMV IgM", width: 1100, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							width: 1150,
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("CMV IgM"))] || "",
+						}),
+					],
+					height: {
+						value: eliseRowHeight,
+						rule: HeightRule.EXACT,
+					},
 				}),
 			],
 		});
@@ -562,7 +684,7 @@ module.exports = async (absoluteFileName) => {
 						new MyTableCell({ text: "Ca125", horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							width: 800,
-							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca125"))] || "",
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Ca 125"))] || "",
 						}),
 					],
 				}),
@@ -620,7 +742,6 @@ module.exports = async (absoluteFileName) => {
 			],
 		});
 
-		// TODO prokalsitonin ekle
 		const HormonTable = new Table({
 			float: {
 				horizontalAnchor: TableAnchorType.TEXT,
@@ -664,6 +785,14 @@ module.exports = async (absoluteFileName) => {
 						new MyTableCell({ text: "PTH", width: 1000, horizontalAlign: AlignmentType.LEFT }),
 						new MyTableCell({
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Parathormon"))] || "",
+						}),
+					],
+				}),
+				new MyTableRow({
+					children: [
+						new MyTableCell({ text: "Prokalsitonin", width: 1000, horizontalAlign: AlignmentType.LEFT }),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("Prokalsitonin"))] || "",
 						}),
 					],
 				}),
@@ -790,8 +919,9 @@ module.exports = async (absoluteFileName) => {
 				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
 				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
 				absoluteVerticalPosition: "0cm",
-				leftFromText: "1.5cm",
-				topFromText: "1.5cm",
+				absoluteHorizontalPosition: "7.5cm",
+				// leftFromText: "1.5cm",
+				topFromText: "0.5cm",
 			},
 			rows: [
 				new MyTableRow({
@@ -800,9 +930,10 @@ module.exports = async (absoluteFileName) => {
 						rule: HeightRule.EXACT,
 					},
 					children: [
-						new MyTableCell({ text: "Otoimmün Marker", bold: true, width: 1000 }),
+						new MyTableCell({ text: "Otoimmün Marker", bold: true, width: 800 }),
 						new MyTableCell({ text: "ANA" }),
-						new MyTableCell({ text: "ANCA" }),
+						new MyTableCell({ text: "PR3 ANCA", textDirection: "bottomToTop" }),
+						new MyTableCell({ text: "MPO ANCA", textDirection: "bottomToTop" }),
 						new MyTableCell({ text: "AMA" }),
 						new MyTableCell({ text: "ASMA" }),
 						new MyTableCell({ text: "AntiLKM", textDirection: "bottomToTop" }),
@@ -814,11 +945,24 @@ module.exports = async (absoluteFileName) => {
 				new MyTableRow({
 					children: [
 						new MyTableCell(),
-						new MyTableCell(),
-						new MyTableCell(),
-						new MyTableCell(),
-						new MyTableCell(),
-						new MyTableCell(),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key === "ANA")] || "",
+						}),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("PR3 ANCA"))] || "",
+						}),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("MPO ANCA"))] || "",
+						}),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key === "AMA")] || "",
+						}),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key === "ASMA")] || "",
+						}),
+						new MyTableCell({
+							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("LKM"))] || "",
+						}),
 						new MyTableCell({
 							text: allDateValuesCombined[Object.keys(allDateValuesCombined).find((key) => key.includes("IgA (İmmün kompleks)"))] || "",
 						}),
@@ -841,6 +985,7 @@ module.exports = async (absoluteFileName) => {
 				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
 				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
 				leftFromText: 0,
+				// topFromText: "0.5cm",
 				absoluteVerticalPosition: "6cm",
 			},
 			rows: [
@@ -918,6 +1063,7 @@ module.exports = async (absoluteFileName) => {
 				// relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
 				// relativeVerticalPosition: RelativeVerticalPosition.TOP,
 				leftFromText: "0.5cm",
+				topFromText: "0.5cm",
 				absoluteVerticalPosition: "6cm",
 			},
 			width: {
@@ -1028,15 +1174,6 @@ module.exports = async (absoluteFileName) => {
 				OtoimmünMarkerTable,
 				ChildPughSkorlama,
 				RansonKriterleriTable,
-				new Paragraph({
-					children: [],
-				}),
-				new Paragraph({
-					children: [],
-				}),
-				new Paragraph({
-					children: [],
-				}),
 			],
 		});
 	}
@@ -1088,7 +1225,5 @@ module.exports = async (absoluteFileName) => {
 	// Used to export the file into a .docx file
 	const buffer = await Packer.toBuffer(doc);
 	await fs.promises.writeFile(`${absoluteFileName}.docx`, buffer);
-	console.log("Docx generated!");
-
-	// Done! A file called 'My Document.docx' will be in your file system.
+	console.log(`${absoluteFileName}.docx successfully generated!`);
 };

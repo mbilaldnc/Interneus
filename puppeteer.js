@@ -1,16 +1,21 @@
 const fs = require("fs");
+const path = require("path");
+// process.env["cacheDirectory"] = path.join(__dirname, ".cache", "puppeteer");
 const puppeteer = require("puppeteer");
 const prompt = require("prompt");
-const path = require("path");
 
-const height = 100000;
+const height = 100000; // it needs to be scrolled down to load all results piece by piece. so we set it to a very large number to load all results at once.
 // const height = 1080;
 const headless = "new";
-// const headless = false;
+// const headless = false; // makes the browser visible
+const slowMo = undefined;
+// const slowMo = 20; // slows down the browser by the given amount of milliseconds
+const durationToWaitForResultsToLoad = 10000; // Since we set the height to a very large number, we need to wait for the results to load. Its hard to predict how long it will take, so we set it to a very large number like 10 seconds.
+// const durationToWaitForResultsToLoad = 2000;
 
 const excludedValueNames = ["MDRD", "eGFR", "FIB", "SERUM INDEX", "LIPEMIA", "ICTERUS", "HEMOLYSİS"];
 let dateRegex = /^(\d{2}\.\d{2}\.\d{2})/;
-let valueRegex = /^(((-|<|>)?\s?\d+,?\d*)?\s?((NEGATİF\(-\))|(POZİTİF\(\+\)))?)/;
+let valueRegex = /^(\++\s?)?(((-|<|>)?\s?\d+,?\d*)?\s?((NEGATİF\(-\))|(POZİTİF\(\+\)))?)/;
 
 function sleep(ms) {
 	return new Promise((resolve) => {
@@ -78,6 +83,26 @@ async function authenticateAndListPatients(browser, username, password) {
 			.click(),
 		(async () => {
 			await page.waitForSelector(
+				"#overlay > flow-component-renderer > div > vaadin-vertical-layout > vaadin-select:nth-child(2) >>>> vaadin-select-text-field >>>> #vaadin-select-text-field-label-0 ::-p-text(Merkez Seçimi)"
+			);
+			await page
+				.locator(
+					"#overlay > flow-component-renderer > div > vaadin-vertical-layout > vaadin-select:nth-child(2) >>>> vaadin-select-text-field >>>> #vaadin-select-text-field-input-0"
+				)
+				.click();
+			await page.locator("body > vaadin-select-overlay > vaadin-list-box > vaadin-item:nth-child(1)").click();
+			await page.locator("#overlay > flow-component-renderer > div > vaadin-vertical-layout > vaadin-button >>>> button").click();
+
+			await sleep(500);
+			// click Hasta İşlemleri
+			await page
+				.locator(
+					"body > vaadin-app-layout > div > div > div > div.view-frame__content > div > div > div > div.mobilmenu__group > div > div > span"
+				)
+				.click();
+		})(),
+		(async () => {
+			await page.waitForSelector(
 				"body > vaadin-vertical-layout > div > div > vaadin-vertical-layout > vaadin-horizontal-layout > label ::-p-text(Yanlış kullanıcı adı ya da parola)"
 			);
 			throw new Error("Wrong username or password");
@@ -127,7 +152,7 @@ async function authenticateAndListPatients(browser, username, password) {
  */
 async function getPatientData(browser, patienName) {
 	let myBrowser = browser;
-	if (!myBrowser) myBrowser = await puppeteer.launch({ headless });
+	if (!myBrowser) myBrowser = await puppeteer.launch({ headless, slowMo });
 	const page = await myBrowser.newPage();
 	await page.setViewport({
 		height,
@@ -136,10 +161,33 @@ async function getPatientData(browser, patienName) {
 	// Navigate the page to a URL
 	await page.goto("https://onlinehbys.kocaeli.edu.tr:20108/nucleus-mobile");
 
-	// click Hasta İşlemleri
-	await page
-		.locator("body > vaadin-app-layout > div > div > div > div.view-frame__content > div > div > div > div.mobilmenu__group > div > div > span")
-		.click();
+	await Promise.race([
+		// click Hasta İşlemleri
+		page
+			.locator(
+				"body > vaadin-app-layout > div > div > div > div.view-frame__content > div > div > div > div.mobilmenu__group > div > div > span"
+			)
+			.click(),
+		(async () => {
+			await page.waitForSelector(
+				"#overlay > flow-component-renderer > div > vaadin-vertical-layout > vaadin-select:nth-child(2) >>>> vaadin-select-text-field >>>> #vaadin-select-text-field-label-0 ::-p-text(Merkez Seçimi)"
+			);
+			await page
+				.locator(
+					"#overlay > flow-component-renderer > div > vaadin-vertical-layout > vaadin-select:nth-child(2) >>>> vaadin-select-text-field >>>> #vaadin-select-text-field-input-0"
+				)
+				.click();
+			await page.locator("body > vaadin-select-overlay > vaadin-list-box > vaadin-item:nth-child(1)").click();
+			await page.locator("#overlay > flow-component-renderer > div > vaadin-vertical-layout > vaadin-button >>>> button").click();
+			await sleep(500);
+			// click Hasta İşlemleri
+			await page
+				.locator(
+					"body > vaadin-app-layout > div > div > div > div.view-frame__content > div > div > div > div.mobilmenu__group > div > div > span"
+				)
+				.click();
+		})(),
+	]);
 
 	// click Hasta Sorgula
 	await page
@@ -191,7 +239,7 @@ async function getPatientData(browser, patienName) {
 	await page.waitForSelector(
 		"body > vaadin-app-layout > vaadin-horizontal-layout > vaadin-horizontal-layout:nth-child(2) > label ::-p-text(Tetkik Sonuç)"
 	);
-	await sleep(10000);
+	await sleep(durationToWaitForResultsToLoad);
 
 	let tableItems = await page.$$(
 		"body > vaadin-app-layout > div > div > div > div.view-frame__wrapper > div.view-frame__content > vaadin-vertical-layout > div > vaadin-vertical-layout > vaadin-grid > vaadin-grid-cell-content"
@@ -219,7 +267,12 @@ async function getPatientData(browser, patienName) {
 			columns[0].includes("Kan gazı") ||
 			columns[0].includes("Tam İdrar") ||
 			columns[0].includes("Gastrointestinal Panel") ||
-			columns[0].includes("Monospesifik Direkt Coombs")
+			columns[0].includes("Monospesifik Direkt Coombs") ||
+			columns[0].includes("ENA Screening") ||
+			columns[0].includes("Retikülosit_Paneli") ||
+			columns[0].includes("Protein 24 Saatlik İdrar Paneli") ||
+			columns[0].includes("Albumin 24 Saatlik İdrar Paneli") ||
+			columns[0].includes("Kreatinin 24 Saatlik İdrar Paneli")
 		) {
 			// console.log(rows[0], "results:");
 			let dateResult = dateRegex.exec(columns[1]);
@@ -291,12 +344,15 @@ module.exports = async (absoluteFileName) => {
 				},
 			]);
 			console.log("Logging in...");
-			browser = await puppeteer.launch({ headless });
+			browser = await puppeteer.launch({ headless, slowMo });
 			[initialPage, patientNames] = await authenticateAndListPatients(browser, username, password);
 			loggedIn = true;
 		} catch (e) {
-			console.log("Login failed. Please try again.");
+			if (!e?.message?.includes("Wrong username")) {
+				console.log(e);
+			}
 			browser.close();
+			console.log("Login failed. Please try again.");
 			continue;
 		}
 	}
@@ -338,7 +394,7 @@ module.exports = async (absoluteFileName) => {
 		patientTimes.push(patientProcessTime);
 		if (!fs.existsSync(`${absoluteFileName}.json`)) console.log(`Creating ${absoluteFileName}.json with first patients data...`);
 		await fs.promises.writeFile(`${absoluteFileName}.json`, JSON.stringify(allData), "utf8");
-		console.log(patientName, "is successfuly scraped.");
+		console.log(patientName, "is successfully scraped.");
 	}
 	console.log("Executed in " + (new Date() - startTime) / 1000 + " seconds!");
 	console.log("Mean patient process time: " + patientTimes.reduce((a, b) => a + b, 0) / patientTimes.length + " seconds.");

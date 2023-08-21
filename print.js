@@ -1,9 +1,7 @@
 const cmd = require("node-cmd");
-const path = require("path");
-const fileName = process.argv[2];
-const absoulteFilePath = path.resolve(__dirname, fileName);
-
-console.log("Printing ", absoulteFilePath);
+// const path = require("path");
+// const fileName = process.argv[2];
+// const absoluteFilePath = path.resolve(__dirname, fileName);
 
 function getDataLogger(prefix) {
 	let data_line = "";
@@ -16,9 +14,12 @@ function getDataLogger(prefix) {
 	};
 }
 
-const proc = cmd.run(
-	`"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE" /q /n "${absoulteFilePath}" /mFilePrintDefault /mFileCloseOrExit`
-);
+module.exports = (absoluteFileName) => {
+	console.log(`Printing ${absoluteFileName}.docx`);
+	const proc = cmd.run(
+		`"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE" /q /n "${absoluteFileName}.docx" /mFilePrintDefault /mFileCloseOrExit`
+	);
 
-proc.stdout.on("data", getDataLogger("stdout"));
-proc.stderr.on("data", getDataLogger("stderr"));
+	proc.stdout.on("data", getDataLogger("stdout"));
+	proc.stderr.on("data", getDataLogger("stderr"));
+};

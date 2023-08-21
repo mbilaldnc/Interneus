@@ -1,6 +1,9 @@
 const puppeteer = require("./puppeteer");
 const docx = require("./docx");
-const { exec } = require("child_process");
+const print = require("./print");
+const child_process = require("child_process");
+// const { exec } = require("child_process");
+const prompt = require("prompt");
 const path = require("path");
 
 (async () => {
@@ -21,13 +24,29 @@ Hesap giriş bilgilerinizi depolamaz. Nucleus hariç başka bir uzak sunucuyla b
 4-Toplanan verileri kullanarak bir word dosyası oluşturur.
 5-Oluşturulan word dosyasını varsayılan yazıcı ile yazdırır. (Varsayılan word konumu: C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE)
 
-\x1b[35mİnt. Dr. Mehmet Bilal Danacı tarafından intörnler üzerindeki iş yükünü azaltmak amacıyla geliştirilmiştir.
+\x1b[91mÖn hazırlık ve gereksinimler:
+1-Programı kullanabilmek için bir nucleus hesabına ihtiyacınız var.
+2-Programı kullanmadan önce nucleus hesabınıza internet tarayıcınızdan girerek
+  giriş yapıp sırasıyla Hasta İşlemleri>Hasta Sorgula bastıktan sonra "Aktif Hastalar" sekmesinden 
+  "Yatan" seçeneğini seçip sonuçlarını yazdırmak istediğiniz bölüm(ler)ü seçin.
+  Bu işlem, hesabınıza bir sonraki girişinizde seçtiğiniz bölümdeki hastaların direkt olarak önünüzde
+  seçili olarak çıkmasını sağlayacaktır. Program da bu seçili hastaların sonuçlarını toplayacaktır.
+3-(Opsiyonel)Program için özel bir klasör oluşturup. Programı onun içerisinde çalıştırmanız önerilir.
+
+\x1b[92mİnt. Dr. Mehmet Bilal Danacı tarafından intörnler üzerindeki iş yükünü azaltmak amacıyla geliştirilmiştir.
 İletişim: mbilaldnc@gmail.com
 \x1b[90mHedef şablon olarak gastroenteroloji hasta sonuç kağıdı kullanılmıştır. Diğer bölümlerin sonuç kağıtlarını geliştirmeye yardımcı olmak için lütfen iletişime geçiniz.\x1b[0m
 	`);
-	// console.log("json file: ", absoluteFileName + ".json");
-	await puppeteer(absoluteFileName);
-	await docx(absoluteFileName);
-	await exec(`node print.js "${fileName}.docx"`);
-	// await docx("20.08.2023 04.36.05");
+	try {
+		await puppeteer(absoluteFileName);
+		await docx(absoluteFileName);
+		console.log("Varsayılan yazıcıyla yazdırmaya devam etmek için herhangi bir tuşa basın.");
+		child_process.spawnSync("pause", { shell: true, stdio: [0, 1, 2] });
+		await print(absoluteFileName);
+	} catch (e) {
+		console.log("Program bir hata verdi ve kapatılacak.");
+		console.log(e);
+		child_process.spawnSync("pause", { shell: true, stdio: [0, 1, 2] });
+	}
+	child_process.spawnSync("pause", { shell: true, stdio: [0, 1, 2] });
 })();
